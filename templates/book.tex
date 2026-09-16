@@ -1,49 +1,15 @@
-\documentclass[11pt,oneside]{book}
-
-\usepackage{fontspec}
-\defaultfontfeatures{Ligatures=TeX,Scale=MatchLowercase}
-\setmainfont{Latin Modern Roman}
-\setsansfont{Latin Modern Sans}
-\setmonofont{Latin Modern Mono}
-\usepackage{geometry}
-\geometry{margin=1in}
-\usepackage{xcolor}
-\usepackage{graphicx}
-\usepackage{grffile}
-\usepackage{longtable,booktabs,array}
-\usepackage{calc}
-\usepackage{caption}
-\usepackage{float}
-\usepackage{fancyvrb}
-\usepackage{framed}
-\usepackage{upquote}
-\usepackage{microtype}
+\documentclass[11pt,openany]{book}
+\usepackage[margin=25mm]{geometry}
+\usepackage{graphicx,adjustbox,longtable,booktabs,array,calc}
 \usepackage{hyperref}
-\hypersetup{unicode=true,colorlinks=true,linkcolor=blue,urlcolor=blue,citecolor=blue}
-\urlstyle{same}
-\setlength{\emergencystretch}{3em}
-
-$if(highlighting-macros)$
-$highlighting-macros$
-$endif$
-
-$if(title)$
-\title{$title$}
-$endif$
-$if(author)$
-\author{$for(author)$$author$$sep$ \and $endfor$}
-$endif$
-$if(date)$
-\date{$date$}
-$else$
-\date{}
-$endif$
-
+\usepackage{pdflscape}
+\setlength\LTleft{0pt}
+\setlength\LTright{0pt}
+\setlength\tabcolsep{4pt}
+\providecommand{\tightlist}{\setlength{\itemsep}{0pt}\setlength{\parskip}{0pt}}
+$if(title)$\title{$title$}$endif$
+$if(author)$\author{$for(author)$$author$$sep$ \\ $endfor$}$endif$
 \begin{document}
-\frontmatter
-\maketitle
-\tableofcontents
-\mainmatter
+$if(title)$\maketitle$endif$
 $body$
 \end{document}
-

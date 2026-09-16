@@ -1,35 +1,53 @@
 # LaTeX book template
 
-Write all book content in `notes/`. The `chapters` array in `book.yaml` is the
-authoritative chapter order; paths are **not** discovered automatically. Numeric
-filename prefixes such as `01-introduction.md`, `02-methods.md` are recommended
-so directory listings also appear in reading order.
+This template turns one or more Markdown chapters into a book while handling
+the parts of Pandoc publishing that commonly become fragile: chapter-relative
+images, Mermaid diagrams, wide/page-breaking tables, and safe LaTeX text.
 
 ## Build
 
-With Pandoc, XeLaTeX, latexmk, Python/PyYAML, and Mermaid CLI installed:
+Install Pandoc, XeLaTeX, Node.js, and `pdftotext`, then run:
 
 ```sh
-./scripts/build-book.sh
+make
+python3 scripts/verify-build.py
 ```
 
-The clean, isolated `build/` directory contains `book.tex`, `book.pdf`, LaTeX
-logs, prepared Markdown, and rendered diagrams. It is safe to delete and is not
-versioned. The script validates the YAML and all chapter and image paths before
-running Pandoc once, then uses `latexmk` to resolve the required LaTeX passes.
+`npm install` installs the exact (non-range) Mermaid CLI version recorded in
+`package.json`. The build never invokes a shell with content-derived
+arguments. Generated and copied files live only under `build/assets`; copied
+asset names include a hash of their canonical source path so equal basenames
+from different chapters cannot collide.
 
-For the pinned toolchain, use Docker:
+## Figures
 
-```sh
-docker build -t latex-book .
-docker run --rm -v "$PWD/build:/book/build" latex-book
+Paths are relative to each chapter, including paths containing spaces:
+
+```markdown
+![A caption](<images/a file.png>){#fig:example width=60% height=8cm align=left}
 ```
 
-Mermaid fenced code blocks are rendered automatically:
+`width`, `height`, `align` (`left`, `center`, or `right`), a caption, and a
+label are optional. Figures default to centered and are always rendered with
+`keepaspectratio`; default bounds are `\linewidth` by `0.85\textheight`.
+Missing files produce an obvious typeset placeholder and warning. Pass
+`--strict` directly to `prepare-content.py` when a missing image must fail the
+build.
+
+Mermaid fences accept the same presentation attributes; their caption is an
+explicit `caption` attribute:
 
 ````markdown
-```mermaid
+```mermaid {#fig:flow caption="Request flow" align=center width=80%}
 flowchart LR
-  Draft --> Book
+  Request --> Response
 ```
 ````
+
+## Tables
+
+Pandoc emits LaTeX `longtable` output, including repeated headings, captions,
+and labels. The Lua filter normalizes explicit column widths and reduces cell
+padding/font size for tables with six or more columns without wrapping the
+table in an unbreakable resize box. Put exceptionally wide material in a
+`{.landscape}` fenced div.
