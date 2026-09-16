@@ -93,6 +93,7 @@ jobs:
           # ships preinstalled on this runner image, so it is not apt-get
           # installed here; see the next step.
           sudo apt-get install --no-install-recommends -y \
+            latexmk \
             librsvg2-bin \
             pandoc \
             texlive-fonts-recommended \
