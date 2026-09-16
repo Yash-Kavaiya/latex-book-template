@@ -1,0 +1,164 @@
+name: Build book
+
+on:
+  push:
+    paths: &book_paths
+      - "notes/**/*.md"
+      - "book.yml"
+      - "templates/**"
+      - "template.tex"
+      - "filters/**"
+      - "scripts/**"
+      - "assets/**"
+      - "images/**"
+      - "bibliography/**"
+      - "**/*.bib"
+      - "**/*.bst"
+      - "**/*.csl"
+      - "**/*.cls"
+      - "**/*.sty"
+      - "**/*.tex"
+      - "**/*.png"
+      - "**/*.jpg"
+      - "**/*.jpeg"
+      - "**/*.svg"
+      - "**/*.gif"
+      - "**/*.webp"
+      - "**/*.eps"
+      - "**/*.otf"
+      - "**/*.ttf"
+      - "**/*.pdf"
+      - "Dockerfile"
+      - "docker/**"
+      - "requirements*.txt"
+      - "Pipfile"
+      - "Pipfile.lock"
+      - "pyproject.toml"
+      - "poetry.lock"
+      - "uv.lock"
+      - "environment.yml"
+      - "package.json"
+      - "package-lock.json"
+      - "pnpm-lock.yaml"
+      - "yarn.lock"
+      - ".github/workflows/**"
+  pull_request:
+    paths: *book_paths
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: book-${{ github.workflow }}-${{ github.event.pull_request.head.ref || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    name: Render and package
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+
+    steps:
+      - name: Check out repository
+        # actions/checkout v4.2.2
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+
+      - name: Install build dependencies in pinned runner environment
+        env:
+          DEBIAN_FRONTEND: noninteractive
+        run: |
+          sudo apt-get update
+          # ubuntu-24.04 pins the distribution used by these packages instead of
+          # inheriting the moving ubuntu-latest environment.
+          sudo apt-get install --no-install-recommends -y \
+            graphviz \
+            librsvg2-bin \
+            pandoc \
+            texlive-fonts-recommended \
+            texlive-latex-extra \
+            texlive-latex-recommended \
+            texlive-xetex \
+            zip
+
+      - name: Build book
+        shell: bash
+        run: |
+          set -o pipefail
+          mkdir -p logs
+          bash scripts/build-book.sh 2>&1 | tee logs/build-book.log
+
+      - name: Validate build outputs
+        shell: bash
+        run: |
+          test -s build/book.pdf
+          test -s build/book.tex
+
+      - name: Package reproducible LaTeX source
+        shell: bash
+        run: |
+          set -euo pipefail
+          staging="$(mktemp -d)"
+          trap 'rm -rf "$staging"' EXIT
+
+          # Keep generated paths intact so references in book.tex continue to work.
+          cp build/book.tex "$staging/book.tex"
+          while IFS= read -r -d '' source; do
+            relative="${source#build/}"
+            mkdir -p "$staging/$(dirname "$relative")"
+            cp "$source" "$staging/$relative"
+          done < <(find build -type f \
+            \( -iname '*.png' -o -iname '*.jpg' -o -iname '*.jpeg' \
+               -o -iname '*.svg' -o -iname '*.gif' -o -iname '*.webp' \
+               -o -iname '*.pdf' -o -iname '*.eps' -o -iname '*.otf' \
+               -o -iname '*.ttf' -o -iname '*.csl' \
+               -o -iname '*.bib' -o -iname '*.bst' -o -iname '*.sty' \
+               -o -iname '*.cls' \) \
+            ! -path 'build/book.pdf' -print0)
+
+          # Include project-owned TeX support and bibliography files, never the
+          # repository wholesale (which could expose credentials or caches).
+          while IFS= read -r -d '' source; do
+            mkdir -p "$staging/$(dirname "$source")"
+            cp "$source" "$staging/$source"
+          done < <(find . \
+            \( -path './.git' -o -path './build' -o -path './dist' \
+               -o -path './.cache' -o -path './node_modules' \) -prune -o \
+            -type f \( -iname '*.bib' -o -iname '*.bst' -o -iname '*.csl' \
+                       -o -iname '*.sty' -o -iname '*.cls' \
+                       -o -path './templates/*.tex' \) \
+            -print0 | sed -z 's#^\./##')
+
+          mkdir -p dist
+          (cd "$staging" && zip -q -r "$GITHUB_WORKSPACE/dist/latex-source.zip" .)
+          test -s dist/latex-source.zip
+
+      - name: Upload rendered PDF
+        # actions/upload-artifact v4.6.2
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: book-pdf
+          path: build/book.pdf
+          if-no-files-found: error
+          retention-days: 14
+
+      - name: Upload reproducible LaTeX source
+        # actions/upload-artifact v4.6.2
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: latex-source
+          path: dist/latex-source.zip
+          if-no-files-found: error
+          retention-days: 14
+
+      - name: Upload compiler logs after failure
+        if: ${{ failure() }}
+        # actions/upload-artifact v4.6.2
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: book-build-logs
+          path: |
+            logs/build-book.log
+            build/**/*.log
+          if-no-files-found: warn
+          retention-days: 14
