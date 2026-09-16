@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import argparse
 import hashlib
+import json
 import re
 import shutil
 import subprocess
@@ -98,6 +99,20 @@ class Preparer:
         self.strict = strict
         self.svg_converter = svg_converter or ["rsvg-convert", "-f", "pdf"]
         assets.mkdir(parents=True, exist_ok=True)
+        self._puppeteer_config: Path | None = None
+
+    def _mermaid_puppeteer_config(self) -> Path:
+        # CI containers commonly lack unprivileged user namespaces (AppArmor
+        # restricts them on newer Ubuntu), which breaks Chromium's sandbox.
+        # --no-sandbox is standard practice for headless Chrome in CI.
+        if self._puppeteer_config is None:
+            config = self.assets.parent / "mermaid-puppeteer-config.json"
+            config.write_text(
+                json.dumps({"args": ["--no-sandbox", "--disable-setuid-sandbox"]}),
+                encoding="utf-8",
+            )
+            self._puppeteer_config = config
+        return self._puppeteer_config
 
     def image(self, match: re.Match[str], source: Path) -> str:
         raw = (match.group("angle") or match.group("plain")).strip()
@@ -143,7 +158,13 @@ class Preparer:
         if not output.exists():
             # A list and shell=False ensure diagram/configuration text can never
             # become a shell command.
-            subprocess.run(self.renderer + ["-i", str(definition), "-o", str(output), "-b", "transparent"], check=True)
+            subprocess.run(
+                self.renderer + [
+                    "-p", str(self._mermaid_puppeteer_config()),
+                    "-i", str(definition), "-o", str(output), "-b", "transparent",
+                ],
+                check=True,
+            )
         caption = attrs.pop("caption", "")
         return figure(output.as_posix(), caption, attrs)
 
