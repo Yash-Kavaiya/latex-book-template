@@ -5,7 +5,7 @@ ARG PANDOC_VERSION=3.6.4
 RUN apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
     ca-certificates curl nodejs npm python3 python3-yaml python3-jsonschema chromium librsvg2-bin \
     latexmk texlive-xetex texlive-latex-extra texlive-latex-recommended texlive-fonts-recommended \
-    fonts-texgyre lmodern \
+    fonts-texgyre lmodern poppler-utils \
   && rm -rf /var/lib/apt/lists/* \
   && curl -fsSLo /tmp/pandoc.deb \
     "https://github.com/jgm/pandoc/releases/download/${PANDOC_VERSION}/pandoc-${PANDOC_VERSION}-1-amd64.deb" \
