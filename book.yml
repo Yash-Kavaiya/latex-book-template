@@ -1,0 +1,14 @@
+title: The Small Systems Handbook
+subtitle: A representative Markdown book
+author: Example Authors
+language: en-US
+date: "2026-09-16"
+papersize: a4
+toc_depth: 2
+mainfont: TeX Gyre Pagella
+sansfont: TeX Gyre Heros
+monofont: TeX Gyre Cursor
+chapters:
+  - notes/01-welcome.md
+  - notes/02-layout-and-diagrams.md
+  - notes/03-reference-tables.md
