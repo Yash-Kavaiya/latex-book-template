@@ -5,7 +5,7 @@
 \setsansfont{$sans-font$}
 \setmonofont{$mono-font$}
 \usepackage{xcolor}
-$if(link-color-hex)$\definecolor{booklink}{HTML}{$link-color$}$else$\colorlet{booklink}{$link-color$}$endif$
+$if(link-color-hex)$\definecolor{booklink}{HTML}{$link-color$}$else$\colorlet{bookhttps://github.com/Yash-Kavaiya/latex-book-template/pull/3/conflict?name=README.md&ancestor_oid=5186f92ec6c3766b80ed3695ef2e3d8ba73ab05c&base_oid=adc217ebb41da93331ddcf258fc1fd6f4350b587&head_oid=02c7ba8261c4fc9a68e3a015c63837ab37416b63link}{$link-color$}$endif$
 $if(url-color-hex)$\definecolor{bookurl}{HTML}{$url-color$}$else$\colorlet{bookurl}{$url-color$}$endif$
 $if(cite-color-hex)$\definecolor{bookcite}{HTML}{$cite-color$}$else$\colorlet{bookcite}{$cite-color$}$endif$
 \usepackage[colorlinks=true,linkcolor=booklink,urlcolor=bookurl,citecolor=bookcite]{hyperref}
@@ -29,5 +29,18 @@ $if(description)$\begin{quote}$description$\end{quote}$endif$
 $if(table-of-contents)$\tableofcontents\clearpage$endif$
 $if(list-of-figures)$\listoffigures\clearpage$endif$
 $if(list-of-tables)$\listoftables\clearpage$endif$
+\documentclass[11pt,openany]{book}
+\usepackage[margin=25mm]{geometry}
+\usepackage{graphicx,adjustbox,longtable,booktabs,array,calc}
+\usepackage{hyperref}
+\usepackage{pdflscape}
+\setlength\LTleft{0pt}
+\setlength\LTright{0pt}
+\setlength\tabcolsep{4pt}
+\providecommand{\tightlist}{\setlength{\itemsep}{0pt}\setlength{\parskip}{0pt}}
+$if(title)$\title{$title$}$endif$
+$if(author)$\author{$for(author)$$author$$sep$ \\ $endfor$}$endif$
+\begin{document}
+$if(title)$\maketitle$endif$
 $body$
 \end{document}
