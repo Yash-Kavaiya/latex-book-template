@@ -1,14 +1,60 @@
+# Book configuration
+#
+# This is the ONLY file (besides notes/**/*.md) that authors need to edit.
+# It controls the cover, header/footer, typography, and chapter order.
+# Fields are validated against schema/book.schema.json -- unknown fields
+# or malformed values fail validation with a clear error before any
+# LaTeX build is attempted.
+
 title: The Small Systems Handbook
 subtitle: A representative Markdown book
-author: Example Authors
+author: Example Author
 language: en-US
 date: "2026-09-16"
-papersize: a4
-toc_depth: 2
-mainfont: TeX Gyre Pagella
-sansfont: TeX Gyre Heros
-monofont: TeX Gyre Cursor
+description: ""
+
+# cover_image: notes/assets/cover.png
+
+# Ordered, unique list of chapters. This array is the sole source of
+# publication order; every Markdown file under notes/ must appear here
+# exactly once (enforced by scripts/validate.py).
 chapters:
   - notes/01-welcome.md
   - notes/02-layout-and-diagrams.md
   - notes/03-reference-tables.md
+
+# Page layout -----------------------------------------------------------
+paper_size: a4
+toc_depth: 2
+table_of_contents: true
+list_of_figures: false
+list_of_tables: false
+page_numbering: arabic
+document_class_options: [openany]
+
+margins:
+  top: 25mm
+  right: 25mm
+  bottom: 25mm
+  left: 25mm
+
+# Typography --------------------------------------------------------------
+# Font names must be installed and resolvable by XeLaTeX/fontconfig. The
+# CI image and Dockerfile install the TeX Gyre family, so these defaults
+# always build without any extra font installation.
+fonts:
+  main: TeX Gyre Pagella
+  sans: TeX Gyre Heros
+  mono: TeX Gyre Cursor
+  size: 11pt
+
+link_colors:
+  link: blue
+  url: blue
+  cite: teal
+
+# Running header/footer on content pages ---------------------------------
+# header_text defaults to the title above when left empty; footer_text
+# is empty by default. The page number always appears in the footer.
+header_text: ""
+footer_text: ""

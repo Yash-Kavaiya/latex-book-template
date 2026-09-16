@@ -1,47 +1,23 @@
 name: Build book
 
+# Any push or pull request that touches notes/**/*.md (or anything else
+# that can change the rendered output) re-runs the full build. Editing
+# only notes/**/*.md and book.yml is all authors ever need to do.
 on:
   push:
     paths: &book_paths
-      - "notes/**/*.md"
+      - "notes/**"
       - "book.yml"
+      - "schema/**"
       - "templates/**"
-      - "template.tex"
       - "filters/**"
       - "scripts/**"
-      - "assets/**"
-      - "images/**"
-      - "bibliography/**"
-      - "**/*.bib"
-      - "**/*.bst"
-      - "**/*.csl"
-      - "**/*.cls"
-      - "**/*.sty"
-      - "**/*.tex"
-      - "**/*.png"
-      - "**/*.jpg"
-      - "**/*.jpeg"
-      - "**/*.svg"
-      - "**/*.gif"
-      - "**/*.webp"
-      - "**/*.eps"
-      - "**/*.otf"
-      - "**/*.ttf"
-      - "**/*.pdf"
+      - "tests/**"
       - "Dockerfile"
-      - "docker/**"
       - "requirements*.txt"
-      - "Pipfile"
-      - "Pipfile.lock"
-      - "pyproject.toml"
-      - "poetry.lock"
-      - "uv.lock"
-      - "environment.yml"
       - "package.json"
       - "package-lock.json"
-      - "pnpm-lock.yaml"
-      - "yarn.lock"
-      - ".github/workflows/**"
+      - ".github/workflows/build-book.yml"
   pull_request:
     paths: *book_paths
   workflow_dispatch:
@@ -54,25 +30,69 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  validate:
+    name: Validate content and configuration
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - name: Check out repository
+        # actions/checkout v7.0.1
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+
+      - name: Set up Python
+        # actions/setup-python v7.0.0
+        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - run: pip install -r requirements.txt
+
+      - name: Validate notes/ and book.yml
+        run: |
+          python scripts/validate.py
+          python scripts/build.py --validate-only
+
+      - name: Run unit tests
+        run: python -m unittest discover -s tests -v
+
   build:
     name: Render and package
+    needs: validate
     runs-on: ubuntu-24.04
     timeout-minutes: 30
 
     steps:
       - name: Check out repository
-        # actions/checkout v4.2.2
-        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        # actions/checkout v7.0.1
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+
+      - name: Set up Python
+        # actions/setup-python v7.0.0
+        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Set up Node.js
+        # actions/setup-node v7.0.0
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
+        with:
+          node-version: "20"
+          cache: npm
+
+      - run: pip install -r requirements.txt
 
       - name: Install build dependencies in pinned runner environment
         env:
           DEBIAN_FRONTEND: noninteractive
         run: |
           sudo apt-get update
-          # ubuntu-24.04 pins the distribution used by these packages instead of
-          # inheriting the moving ubuntu-latest environment.
+          # ubuntu-24.04 pins the distribution used by these packages instead
+          # of inheriting the moving ubuntu-latest environment. Chromium
+          # ships preinstalled on this runner image, so it is not apt-get
+          # installed here; see the next step.
           sudo apt-get install --no-install-recommends -y \
-            graphviz \
             librsvg2-bin \
             pandoc \
             texlive-fonts-recommended \
@@ -81,6 +101,19 @@ jobs:
             texlive-xetex \
             zip
 
+      - name: Locate the runner's preinstalled Chromium/Chrome
+        run: |
+          browser="$(command -v chromium-browser || command -v chromium || command -v google-chrome || true)"
+          test -n "$browser" || { echo "no Chromium/Chrome executable found on this runner" >&2; exit 1; }
+          echo "PUPPETEER_EXECUTABLE_PATH=$browser" >> "$GITHUB_ENV"
+
+      - name: Install Mermaid CLI
+        env:
+          # mermaid-cli's Puppeteer drives the preinstalled browser above
+          # instead of downloading its own copy.
+          PUPPETEER_SKIP_CHROMIUM_DOWNLOAD: "true"
+        run: npm ci
+
       - name: Build book
         shell: bash
         run: |
@@ -88,54 +121,25 @@ jobs:
           mkdir -p logs
           bash scripts/build-book.sh 2>&1 | tee logs/build-book.log
 
-      - name: Validate build outputs
-        shell: bash
-        run: |
-          test -s build/book.pdf
-          test -s build/book.tex
+      - name: Verify build output content
+        run: python scripts/verify-build.py
 
       - name: Package reproducible LaTeX source
         shell: bash
         run: |
           set -euo pipefail
-          staging="$(mktemp -d)"
-          trap 'rm -rf "$staging"' EXIT
-
-          # Keep generated paths intact so references in book.tex continue to work.
-          cp build/book.tex "$staging/book.tex"
-          while IFS= read -r -d '' source; do
-            relative="${source#build/}"
-            mkdir -p "$staging/$(dirname "$relative")"
-            cp "$source" "$staging/$relative"
-          done < <(find build -type f \
-            \( -iname '*.png' -o -iname '*.jpg' -o -iname '*.jpeg' \
-               -o -iname '*.svg' -o -iname '*.gif' -o -iname '*.webp' \
-               -o -iname '*.pdf' -o -iname '*.eps' -o -iname '*.otf' \
-               -o -iname '*.ttf' -o -iname '*.csl' \
-               -o -iname '*.bib' -o -iname '*.bst' -o -iname '*.sty' \
-               -o -iname '*.cls' \) \
-            ! -path 'build/book.pdf' -print0)
-
-          # Include project-owned TeX support and bibliography files, never the
-          # repository wholesale (which could expose credentials or caches).
-          while IFS= read -r -d '' source; do
-            mkdir -p "$staging/$(dirname "$source")"
-            cp "$source" "$staging/$source"
-          done < <(find . \
-            \( -path './.git' -o -path './build' -o -path './dist' \
-               -o -path './.cache' -o -path './node_modules' \) -prune -o \
-            -type f \( -iname '*.bib' -o -iname '*.bst' -o -iname '*.csl' \
-                       -o -iname '*.sty' -o -iname '*.cls' \
-                       -o -path './templates/*.tex' \) \
-            -print0 | sed -z 's#^\./##')
-
           mkdir -p dist
-          (cd "$staging" && zip -q -r "$GITHUB_WORKSPACE/dist/latex-source.zip" .)
+          # book.tex references images as build/assets/..., so the zip keeps
+          # that same relative layout: extracting it and running latexmk
+          # from the extraction root reproduces the PDF with zero path
+          # rewriting and no dependency on this repository, Pandoc, Node, or
+          # Python.
+          zip -q -r dist/latex-source.zip build/book.tex build/assets
           test -s dist/latex-source.zip
 
       - name: Upload rendered PDF
-        # actions/upload-artifact v4.6.2
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        # actions/upload-artifact v7.0.1
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
         with:
           name: book-pdf
           path: build/book.pdf
@@ -143,8 +147,8 @@ jobs:
           retention-days: 14
 
       - name: Upload reproducible LaTeX source
-        # actions/upload-artifact v4.6.2
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        # actions/upload-artifact v7.0.1
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
         with:
           name: latex-source
           path: dist/latex-source.zip
@@ -153,8 +157,8 @@ jobs:
 
       - name: Upload compiler logs after failure
         if: ${{ failure() }}
-        # actions/upload-artifact v4.6.2
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        # actions/upload-artifact v7.0.1
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
         with:
           name: book-build-logs
           path: |

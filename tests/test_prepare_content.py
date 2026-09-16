@@ -25,7 +25,18 @@ class PrepareContentTests(unittest.TestCase):
             encoding="utf-8",
         )
         self.renderer.chmod(0o755)
-        self.preparer = prepare_content.Preparer(self.assets, [str(self.renderer)], False)
+        self.svg_converter = self.root / "svg_converter.py"
+        self.svg_converter.write_text(
+            "#!/usr/bin/env python3\n"
+            "import pathlib,sys\n"
+            "out=pathlib.Path(sys.argv[sys.argv.index('-o')+1])\n"
+            "out.write_bytes(b'%PDF-1.4\\n%%EOF')\n",
+            encoding="utf-8",
+        )
+        self.svg_converter.chmod(0o755)
+        self.preparer = prepare_content.Preparer(
+            self.assets, [str(self.renderer)], False, [str(self.svg_converter)]
+        )
 
     def tearDown(self):
         self.temp.cleanup()
@@ -61,6 +72,19 @@ class PrepareContentTests(unittest.TestCase):
         self.assertIn("Missing image:", result)
         self.assertIn(r"bad \# \$", result)
         self.assertNotIn(r"\includegraphics", result)
+
+    def test_svg_image_is_converted_to_pdf(self):
+        source = self.root / "chapter.md"
+        (self.root / "diagram.svg").write_text(
+            '<svg xmlns="http://www.w3.org/2000/svg"><rect width="1" height="1"/></svg>',
+            encoding="utf-8",
+        )
+        source.write_text("![A diagram](diagram.svg){#fig:svg}\n", encoding="utf-8")
+        result = self.preparer.prepare(source)
+        self.assertIn(r"\includegraphics", result)
+        pdfs = list(self.assets.glob("diagram-*.pdf"))
+        self.assertEqual(len(pdfs), 1)
+        self.assertIn(pdfs[0].as_posix(), result)
 
     def test_invalid_dimensions_fall_back(self):
         self.assertEqual(prepare_content.dimension("evil", r"\linewidth"), r"\linewidth")

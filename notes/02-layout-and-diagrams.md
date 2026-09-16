@@ -7,14 +7,14 @@ are globally unique, including labels assigned to Mermaid blocks.
 
 ![Layers in the publishing stack](assets/layers.svg){#fig:layers width=72%}
 
-Paths are relative to this file. See the [image rules](../README.md#images-and-figure-labels).
+Paths are relative to this file. See the [image rules](../README.md#images).
 
 ## Diagrams
 
-```{.mermaid #fig:build-flow caption="The validated publishing flow"}
+```mermaid {#fig:build-flow caption="The validated publishing flow" align=center width=85%}
 flowchart LR
   A[Markdown chapters] --> B[Validate]
-  B --> C[Render Mermaid]
+  B --> C[Prepare content]
   C --> D[Pandoc]
   D --> E[LaTeX]
   E --> F[PDF]
@@ -22,7 +22,7 @@ flowchart LR
 
 Sequence diagrams are supported by the pinned renderer too:
 
-```{.mermaid #fig:review-flow caption="Author and CI review sequence"}
+```mermaid {#fig:review-flow caption="Author and CI review sequence" align=center width=85%}
 sequenceDiagram
   participant Author
   participant CI

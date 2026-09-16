@@ -31,6 +31,24 @@ def slug(text: str) -> str:
     return re.sub(r"[-\s]+", "-", text).strip("-")
 
 
+FENCE_LINE = re.compile(r"^\s*(```|~~~)")
+
+
+def strip_fenced_blocks(text: str) -> str:
+    """Blank out fenced code block bodies so code samples (generics like
+    List<String>, shell backslashes, literal `{=latex}` in a teaching
+    example, ...) cannot trip the raw-HTML/raw-TeX trust-boundary checks."""
+    out: list[str] = []
+    in_fence = False
+    for line in text.splitlines():
+        if FENCE_LINE.match(line):
+            in_fence = not in_fence
+            out.append("")
+        else:
+            out.append("" if in_fence else line)
+    return "\n".join(out)
+
+
 def headings(text: str) -> set[str]:
     result: set[str] = set()
     in_fence = False
@@ -78,13 +96,17 @@ def main() -> int:
         if len(top) != 1:
             report(path, f"chapter must contain exactly one level-one heading (found {len(top)})")
 
-        # Raw input is intentionally excluded from the repository's trust boundary.
-        if re.search(r"<\/?[A-Za-z][^>]*>", text):
-            report(path, "raw HTML is not allowed")
-        if re.search(r"(?<!`)\\(?:input|include|write18|usepackage|documentclass|begin|end)\b", text):
-            report(path, "raw LaTeX command is not allowed")
-        if re.search(r"\{=(?:latex|tex|html)\}", text, flags=re.I):
-            report(path, "raw format attributes are not allowed")
+        # Raw input is intentionally excluded from the repository's trust
+        # boundary. Fenced code blocks (including mermaid diagrams, which
+        # use the same ``` fences) are exempt so genuine code samples don't
+        # trip these checks.
+        scannable = strip_fenced_blocks(text)
+        if re.search(r"<\/?[A-Za-z][^>]*>", scannable):
+            report(path, "raw HTML is not allowed outside fenced code blocks")
+        if re.search(r"(?<!`)\\(?:input|include|write18|usepackage|documentclass|begin|end)\b", scannable):
+            report(path, "raw LaTeX command is not allowed outside fenced code blocks")
+        if re.search(r"\{=(?:latex|tex|html)\}", scannable, flags=re.I):
+            report(path, "raw format attributes are not allowed outside fenced code blocks")
 
         for label in re.findall(r"\{[^}\n]*#(fig:[A-Za-z0-9_.:-]+)[^}\n]*\}", text):
             if label in labels:

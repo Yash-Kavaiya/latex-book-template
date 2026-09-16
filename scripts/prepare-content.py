@@ -92,10 +92,11 @@ def figure(path: str | None, caption: str, attrs: dict[str, str], missing: str |
 
 
 class Preparer:
-    def __init__(self, assets: Path, renderer: list[str], strict: bool):
+    def __init__(self, assets: Path, renderer: list[str], strict: bool, svg_converter: list[str] | None = None):
         self.assets = assets
         self.renderer = renderer
         self.strict = strict
+        self.svg_converter = svg_converter or ["rsvg-convert", "-f", "pdf"]
         assets.mkdir(parents=True, exist_ok=True)
 
     def image(self, match: re.Match[str], source: Path) -> str:
@@ -111,8 +112,25 @@ class Preparer:
                 raise FileNotFoundError(message)
             print(f"warning: {message}", file=sys.stderr)
             return figure(None, match.group("caption"), attrs, raw)
-        target = self.assets / asset_name(candidate)
-        shutil.copy2(candidate, target)
+        if candidate.suffix.lower() == ".svg":
+            # XeLaTeX/graphicx cannot embed SVG directly; rasterizing it to a
+            # vector PDF up front keeps \includegraphics simple and portable.
+            target = self.assets / asset_name(candidate, ".pdf")
+            if not target.exists():
+                result = subprocess.run(
+                    self.svg_converter + ["-o", str(target), str(candidate)],
+                    text=True, capture_output=True,
+                )
+                if result.returncode or not target.is_file():
+                    detail = (result.stderr or result.stdout).strip()
+                    message = f"{source}: could not convert {raw} to PDF: {detail or 'no output'}"
+                    if self.strict:
+                        raise RuntimeError(message)
+                    print(f"warning: {message}", file=sys.stderr)
+                    return figure(None, match.group("caption"), attrs, raw)
+        else:
+            target = self.assets / asset_name(candidate)
+            shutil.copy2(candidate, target)
         return figure(target.as_posix(), match.group("caption"), attrs)
 
     def mermaid(self, match: re.Match[str], source: Path) -> str:
@@ -142,8 +160,9 @@ def main() -> int:
     parser.add_argument("--assets-dir", required=True, type=Path)
     parser.add_argument("--strict", action="store_true", help="fail rather than typeset a missing-image notice")
     parser.add_argument("--mermaid-command", nargs="+", default=["npx", "--no-install", "mmdc"])
+    parser.add_argument("--svg-converter", nargs="+", default=["rsvg-convert", "-f", "pdf"])
     args = parser.parse_args()
-    preparer = Preparer(args.assets_dir, args.mermaid_command, args.strict)
+    preparer = Preparer(args.assets_dir, args.mermaid_command, args.strict, args.svg_converter)
     args.output.parent.mkdir(parents=True, exist_ok=True)
     sections = [preparer.prepare(path) for path in args.inputs]
     args.output.write_text("\n\n".join(sections) + "\n", encoding="utf-8")

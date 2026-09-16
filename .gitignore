@@ -1,9 +1,5 @@
-build/
-dist/
-node_modules/
-__pycache__/
-*.py[cod]
-build/
 /build/
+/dist/
 /node_modules/
 __pycache__/
+*.py[cod]
