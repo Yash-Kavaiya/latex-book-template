@@ -2,3 +2,8 @@ build/
 dist/
 node_modules/
 __pycache__/
+*.py[cod]
+build/
+/build/
+/node_modules/
+__pycache__/

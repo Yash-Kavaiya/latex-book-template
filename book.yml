@@ -12,3 +12,45 @@ chapters:
   - notes/01-welcome.md
   - notes/02-layout-and-diagrams.md
   - notes/03-reference-tables.md
+# The only file most users need to edit. Paths are relative to this file.
+title: "A Small Book"
+subtitle: "A complete, safe configuration example"
+authors:
+  - "Ada Example"
+language: "en-US"
+date: "2026-09-16"
+description: "An example book built from Markdown chapters."
+
+# Chapters are rendered in exactly this order.
+chapters:
+  - chapters/introduction.md
+
+# Set to null to omit a cover. For safety, asset paths may contain only letters,
+# numbers, dots, underscores, hyphens, and forward slashes.
+cover_image: null
+paper_size: a4
+fonts:
+  main: "Libertinus Serif"
+  sans: "Libertinus Sans"
+  mono: "Libertinus Mono"
+  size: 11pt
+margins:
+  top: 25mm
+  right: 25mm
+  bottom: 25mm
+  left: 25mm
+link_colors:
+  link: "1A4B8C"
+  url: "1A4B8C"
+  cite: "2E6B3E"
+
+# Only the explicitly supported class options below are accepted.
+document_class_options:
+  - openany
+  - oneside
+page_numbering: arabic
+header_text: "A Small Book"
+footer_text: "Ada Example"
+table_of_contents: true
+list_of_figures: false
+list_of_tables: false
