@@ -96,6 +96,7 @@ jobs:
             latexmk \
             librsvg2-bin \
             pandoc \
+            fonts-texgyre \
             texlive-fonts-recommended \
             texlive-latex-extra \
             texlive-latex-recommended \
