@@ -1,0 +1,6 @@
+title: A Small Example Book
+author: Example Author
+lang: en-US
+chapters:
+  - notes/01-introduction.md
+

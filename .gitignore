@@ -1,0 +1,10 @@
+/build/
+__pycache__/
+*.py[cod]
+*.pdf
+*.tex
+!templates/book.tex
+*.tar
+*.tar.gz
+*.zip
+*.mmd
