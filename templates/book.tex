@@ -8,6 +8,11 @@
 \documentclass[$font-size$$if(class-options)$,$class-options$$endif$]{book}
 
 \usepackage[$paper-size$paper,top=$margin-top$,right=$margin-right$,bottom=$margin-bottom$,left=$margin-left$]{geometry}
+% book.cls defaults to \flushbottom, which stretches interline glue to
+% justify every page's bottom margin -- on a page with little content
+% (e.g. a single figure) that shows up as a large, ugly gap before the
+% caption/footer. \raggedbottom lets short pages end early instead.
+\raggedbottom
 
 \usepackage{fontspec}
 \setmainfont{$main-font$}
@@ -21,6 +26,10 @@ $if(cite-color-hex)$\definecolor{bookcite}{HTML}{$cite-color$}$else$\colorlet{bo
 \usepackage[colorlinks=true,linkcolor=booklink,urlcolor=bookurl,citecolor=bookcite,breaklinks=true]{hyperref}
 \hypersetup{pdftitle={$title$},pdfauthor={$authors$},pdflang={$lang$}}
 \urlstyle{same}
+
+% Math: amsmath enables the align/aligned/cases/... environments Pandoc
+% emits for $$...$$ display math; amssymb adds the extended symbol set.
+\usepackage{amsmath,amssymb}
 
 % Tables, figures, and page-breaking long tables (see filters/longtable.lua).
 \usepackage{graphicx,adjustbox,longtable,booktabs,array,calc,pdflscape}

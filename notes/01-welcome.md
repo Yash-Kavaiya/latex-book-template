@@ -1,8 +1,9 @@
 # Welcome
 
 This small book demonstrates the authoring contract. Continue with the
-[layout chapter](02-layout-and-diagrams.md#diagrams), or jump to the
-[inventory](03-reference-tables.md#component-inventory).
+[layout chapter](02-layout-and-diagrams.md#diagrams), jump to the
+[inventory](03-reference-tables.md#component-inventory), or see
+[charts and equations](04-charts-and-equations.md#charts-and-equations).
 
 ## Ordinary Markdown
 

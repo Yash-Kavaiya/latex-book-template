@@ -22,6 +22,9 @@ PDF_MARKERS = (
     "Component inventory",
     "Chapter source",
     "Stores semantic prose and headings.",
+    "Charts and equations",
+    "Request path through the build pipeline",
+    "Relative effort by build stage",
 )
 
 

@@ -22,6 +22,7 @@ chapters:
   - notes/01-welcome.md
   - notes/02-layout-and-diagrams.md
   - notes/03-reference-tables.md
+  - notes/04-charts-and-equations.md
 
 # Page layout -----------------------------------------------------------
 paper_size: a4
@@ -54,7 +55,7 @@ link_colors:
   cite: teal
 
 # Running header/footer on content pages ---------------------------------
-# header_text defaults to the title above when left empty; footer_text
-# is empty by default. The page number always appears in the footer.
+# header_text defaults to the title above when left empty. The page
+# number always appears in the footer alongside footer_text.
 header_text: ""
-footer_text: ""
+footer_text: "Example Author"

@@ -162,6 +162,10 @@ class Preparer:
                 self.renderer + [
                     "-p", str(self._mermaid_puppeteer_config()),
                     "-i", str(definition), "-o", str(output), "-b", "transparent",
+                    # Without --pdfFit, mmdc's PDF export uses a fixed page
+                    # size (not the diagram's own bounding box), which shows
+                    # up as a huge blank margin once LaTeX scales the image.
+                    "-f",
                 ],
                 check=True,
             )

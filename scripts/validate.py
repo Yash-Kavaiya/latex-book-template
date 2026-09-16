@@ -32,6 +32,7 @@ def slug(text: str) -> str:
 
 
 FENCE_LINE = re.compile(r"^\s*(```|~~~)")
+MATH_SPAN = re.compile(r"\$\$.+?\$\$|\$[^\n$]+\$", re.DOTALL)
 
 
 def strip_fenced_blocks(text: str) -> str:
@@ -47,6 +48,13 @@ def strip_fenced_blocks(text: str) -> str:
         else:
             out.append("" if in_fence else line)
     return "\n".join(out)
+
+
+def strip_math_spans(text: str) -> str:
+    """Blank out $...$/$$...$$ math so LaTeX math syntax (\\begin{aligned},
+    \\frac, ...) -- which Pandoc's tex_math_dollars extension already
+    contains to math mode -- doesn't trip the raw-TeX trust-boundary check."""
+    return MATH_SPAN.sub(lambda match: "$" * len(match.group()), text)
 
 
 def headings(text: str) -> set[str]:
@@ -98,9 +106,10 @@ def main() -> int:
 
         # Raw input is intentionally excluded from the repository's trust
         # boundary. Fenced code blocks (including mermaid diagrams, which
-        # use the same ``` fences) are exempt so genuine code samples don't
-        # trip these checks.
-        scannable = strip_fenced_blocks(text)
+        # use the same ``` fences) and $...$/$$...$$ math spans are exempt
+        # so genuine code samples and LaTeX math syntax don't trip these
+        # checks.
+        scannable = strip_math_spans(strip_fenced_blocks(text))
         if re.search(r"<\/?[A-Za-z][^>]*>", scannable):
             report(path, "raw HTML is not allowed outside fenced code blocks")
         if re.search(r"(?<!`)\\(?:input|include|write18|usepackage|documentclass|begin|end)\b", scannable):

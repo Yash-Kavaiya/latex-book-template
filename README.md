@@ -89,7 +89,9 @@ level-one (`#`) heading, which becomes its chapter title.
 
 Headings, emphasis, lists, block quotes, fenced code (with syntax
 highlighting), pipe and grid tables, links, cross-chapter links, footnotes,
-citations (if a bibliography is configured), images, and Mermaid diagrams.
+citations (if a bibliography is configured), images, Mermaid diagrams
+(including chart types like `pie`), and LaTeX math (`$inline$` and
+`$$display$$`, including `amsmath` environments like `aligned` and `cases`).
 Internal links use a heading fragment (`[Tables](#tables)`) or a chapter path
 plus fragment (`[diagrams](02-layout-and-diagrams.md#diagrams)`).
 
